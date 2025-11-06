@@ -1,20 +1,24 @@
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
 
-// Your web app's Firebase configuration
+
+// firebase.js
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth"; // ✅ Import auth
+import { getAnalytics } from "firebase/analytics";
+
+// ✅ Your Firebase config
 const firebaseConfig = {
-  apiKey:import.meta.env.VITE_FIREBASE_APIKEY,
-  authDomain: "vingo-food-delivery.firebaseapp.com",
-  projectId: "vingo-food-delivery",
-  storageBucket: "vingo-food-delivery.firebasestorage.app",
-  messagingSenderId: "693314883513",
-  appId: "1:693314883513:web:4840c943ecf3fb61a33068"
+  apiKey: "AIzaSyAegDjD7Jo-kl4gYyJ4tON90llMR1eVE3U",
+  authDomain: "resto-bc02a.firebaseapp.com",
+  projectId: "resto-bc02a",
+  storageBucket: "resto-bc02a.firebasestorage.app",
+  messagingSenderId: "49738211499",
+  appId: "1:49738211499:web:8b9138f1a7dbb56e1e97ee",
+  measurementId: "G-SMK5P9K7GV"
 };
 
-// Initialize Firebase
+// ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const auth=getAuth(app)
-export {app,auth}
+const auth = getAuth(app); // ✅ Initialize and export auth
+const analytics = getAnalytics(app);
+
+export { auth }; // ✅ Export auth so you can import it in SignUp.jsx
