@@ -1,85 +1,169 @@
-import axios from 'axios'
-import React from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { serverUrl } from '../App'
-import { useEffect } from 'react'
-import { useState } from 'react'
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { IoIosArrowRoundBack } from "react-icons/io";
-import DeliveryBoyTracking from '../components/DeliveryBoyTracking'
-import { useSelector } from 'react-redux'
+import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
+import { serverUrl } from "../App";
+import DeliveryBoyTracking from "../components/DeliveryBoyTracking";
+
 function TrackOrderPage() {
-    const { orderId } = useParams()
-    const [currentOrder, setCurrentOrder] = useState() 
-    const navigate = useNavigate()
-    const {socket}=useSelector(state=>state.user)
-    const [liveLocations,setLiveLocations]=useState({})
-    const handleGetOrder = async () => {
-        try {
-            const result = await axios.get(`${serverUrl}/api/order/get-order-by-id/${orderId}`, { withCredentials: true })
-            setCurrentOrder(result.data)
-        } catch (error) {
-            console.log(error)
-        }
+  const { orderId } = useParams();
+  const [currentOrder, setCurrentOrder] = useState();
+  const [liveLocations, setLiveLocations] = useState({});
+  const { socket } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+
+  const handleGetOrder = async () => {
+    try {
+      const result = await axios.get(
+        `${serverUrl}/api/order/get-order-by-id/${orderId}`,
+        { withCredentials: true }
+      );
+      setCurrentOrder(result.data);
+    } catch (error) {
+      console.log(error);
     }
+  };
 
-    useEffect(()=>{
-socket.on('updateDeliveryLocation',({deliveryBoyId,latitude,longitude})=>{
-setLiveLocations(prev=>({
-  ...prev,
-  [deliveryBoyId]:{lat:latitude,lon:longitude}
-}))
-})
-    },[socket])
+  useEffect(() => {
+    if (!socket) return;
+    socket.on("updateDeliveryLocation", ({ deliveryBoyId, latitude, longitude }) => {
+      setLiveLocations((prev) => ({
+        ...prev,
+        [deliveryBoyId]: { lat: latitude, lon: longitude },
+      }));
+    });
 
-    useEffect(() => {
-        handleGetOrder()
-    }, [orderId])
-    return (
-        <div className='max-w-4xl mx-auto p-4 flex flex-col gap-6'>
-            <div className='relative flex items-center gap-4 top-[20px] left-[20px] z-[10] mb-[10px]' onClick={() => navigate("/")}>
-                <IoIosArrowRoundBack size={35} className='text-[#ff4d2d]' />
-                <h1 className='text-2xl font-bold md:text-center'>Track Order</h1>
-            </div>
-      {currentOrder?.shopOrders?.map((shopOrder,index)=>(
-        <div className='bg-white p-4 rounded-2xl shadow-md border border-orange-100 space-y-4' key={index}>
-         <div>
-            <p className='text-lg font-bold mb-2 text-[#ff4d2d]'>{shopOrder.shop.name}</p>
-            <p className='font-semibold'><span>Items:</span> {shopOrder.shopOrderItems?.map(i=>i.name).join(",")}</p>
-            <p><span className='font-semibold'>Subtotal:</span> {shopOrder.subtotal}</p>
-            <p className='mt-6'><span className='font-semibold'>Delivery address:</span> {currentOrder.deliveryAddress?.text}</p>
-         </div>
-         {shopOrder.status!="delivered"?<>
-{shopOrder.assignedDeliveryBoy?
-<div className='text-sm text-gray-700'>
-<p className='font-semibold'><span>Delivery Boy Name:</span> {shopOrder.assignedDeliveryBoy.fullName}</p>
-<p className='font-semibold'><span>Delivery Boy contact No.:</span> {shopOrder.assignedDeliveryBoy.mobile}</p>
-</div>:<p className='font-semibold'>Delivery Boy is not assigned yet.</p>}
-         </>:<p className='text-green-600 font-semibold text-lg'>Delivered</p>}
+    return () => socket.off("updateDeliveryLocation");
+  }, [socket]);
 
-{(shopOrder.assignedDeliveryBoy && shopOrder.status !== "delivered") && (
-  <div className="h-[400px] w-full rounded-2xl overflow-hidden shadow-md">
-    <DeliveryBoyTracking data={{
-      deliveryBoyLocation:liveLocations[shopOrder.assignedDeliveryBoy._id] || {
-        lat: shopOrder.assignedDeliveryBoy.location.coordinates[1],
-        lon: shopOrder.assignedDeliveryBoy.location.coordinates[0]
-      },
-      customerLocation: {
-        lat: currentOrder.deliveryAddress.latitude,
-        lon: currentOrder.deliveryAddress.longitude
-      }
-    }} />
-  </div>
-)}
+  useEffect(() => {
+    handleGetOrder();
+  }, [orderId]);
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#fff9f6] to-[#fff3ee] py-8 px-4">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-5xl mx-auto flex items-center gap-2 mb-6"
+      >
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-[#ff4d2d]/10 hover:bg-[#ff4d2d]/20 transition"
+        >
+          <IoIosArrowRoundBack size={28} className="text-[#ff4d2d]" />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-900">Track Your Order</h1>
+      </motion.div>
 
+      {/* Orders Section */}
+      <div className="max-w-5xl mx-auto space-y-6">
+        <AnimatePresence>
+          {currentOrder?.shopOrders?.map((shopOrder, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 25 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 25 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="bg-white/90 backdrop-blur-md border border-orange-100 shadow-md rounded-2xl p-6 space-y-4 hover:shadow-xl transition-all duration-300"
+            >
+              {/* Shop Info */}
+              <div>
+                <h2 className="text-lg font-bold text-[#ff4d2d]">
+                  {shopOrder.shop.name}
+                </h2>
+                <p className="text-gray-700 mt-1">
+                  <span className="font-semibold">Items:</span>{" "}
+                  {shopOrder.shopOrderItems?.map((i) => i.name).join(", ")}
+                </p>
+                <p className="text-gray-600 mt-1">
+                  <span className="font-semibold">Subtotal:</span> ₹{shopOrder.subtotal}
+                </p>
+                <p className="mt-4 text-gray-700">
+                  <span className="font-semibold">Delivery Address:</span>{" "}
+                  {currentOrder.deliveryAddress?.text}
+                </p>
+              </div>
 
-        </div>
-      ))}
+              {/* Status Section */}
+              {shopOrder.status !== "delivered" ? (
+                <div className="flex flex-col gap-1 text-gray-700">
+                  {shopOrder.assignedDeliveryBoy ? (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-[#fff6f4] border border-orange-100 rounded-xl px-4 py-3"
+                    >
+                      <div>
+                        <p className="font-semibold">
+                          Delivery Boy:{" "}
+                          <span className="text-[#ff4d2d]">
+                            {shopOrder.assignedDeliveryBoy.fullName}
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Contact: {shopOrder.assignedDeliveryBoy.mobile}
+                        </p>
+                      </div>
+                      <motion.span
+                        animate={{ scale: [1, 1.15, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.6 }}
+                        className="text-xs bg-[#ff4d2d]/10 text-[#ff4d2d] px-3 py-1 rounded-full font-medium mt-2 sm:mt-0"
+                      >
+                        {shopOrder.status.charAt(0).toUpperCase() +
+                          shopOrder.status.slice(1)}
+                      </motion.span>
+                    </motion.div>
+                  ) : (
+                    <p className="font-medium text-gray-500 italic">
+                      Delivery Boy not assigned yet ⏳
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <motion.p
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="text-green-600 font-bold text-lg text-center bg-green-50 border border-green-100 rounded-lg py-2"
+                >
+                  ✅ Delivered Successfully
+                </motion.p>
+              )}
 
-
-
-        </div>
-    )
+              {/* Live Tracking Map */}
+              {shopOrder.assignedDeliveryBoy &&
+                shopOrder.status !== "delivered" && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="h-[400px] w-full rounded-2xl overflow-hidden border border-orange-100 shadow-md mt-3"
+                  >
+                    <DeliveryBoyTracking
+                      data={{
+                        deliveryBoyLocation:
+                          liveLocations[shopOrder.assignedDeliveryBoy._id] || {
+                            lat: shopOrder.assignedDeliveryBoy.location.coordinates[1],
+                            lon: shopOrder.assignedDeliveryBoy.location.coordinates[0],
+                          },
+                        customerLocation: {
+                          lat: currentOrder.deliveryAddress.latitude,
+                          lon: currentOrder.deliveryAddress.longitude,
+                        },
+                      }}
+                    />
+                  </motion.div>
+                )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 }
 
-export default TrackOrderPage
+export default TrackOrderPage;

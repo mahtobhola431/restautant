@@ -5,11 +5,13 @@ import App from './App'
 import { BrowserRouter } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { store } from './redux/store.js'
+import Footer from './components/Footer.jsx'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
   <Provider store={store}>
     <App />
+    <Footer/>
   </Provider>
   </BrowserRouter>
  

@@ -13,29 +13,34 @@ import http from "http";
 import { Server } from "socket.io";
 import { socketHandler } from "./socket.js";
 
+// ---------------- Initialize ----------------
 const app = express();
 const server = http.createServer(app);
 
+// ✅ Always trust proxy (important for Render / Vercel / HTTPS)
+app.set("trust proxy", 1);
+
+// ---------------- Allowed Origins ----------------
 const allowedOrigins = [
-  "https://nyvex-restro-app.vercel.app",
-  "http://localhost:5173"
+  "http://localhost:5173",               // Local frontend
+  "https://nyvex-restro-app.vercel.app"  // Deployed frontend
 ];
 
-
+// ---------------- Socket.IO ----------------
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     credentials: true,
-    methods: ["GET", "POST"]
+    methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
-
 app.set("io", io);
 
-
+// ---------------- Middleware Setup ----------------
 app.use(
   cors({
     origin: function (origin, callback) {
+      // Allow requests from allowedOrigins or Postman (no origin)
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -43,14 +48,14 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true
+    credentials: true, // ✅ Required for cookies
   })
 );
 
 app.use(express.json());
 app.use(cookieParser());
 
-
+// ---------------- Routes ----------------
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api/shop", shopRouter);
@@ -60,6 +65,12 @@ app.use("/api/order", orderRouter);
 
 socketHandler(io);
 
+
+app.get("/", (req, res) => {
+  res.send("🍽️ Restaurant Backend API is running successfully!");
+});
+
+// ---------------- Start Server ----------------
 const port = process.env.PORT || 5000;
 
 server.listen(port, () => {
