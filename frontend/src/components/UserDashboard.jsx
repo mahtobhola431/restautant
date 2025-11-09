@@ -1,27 +1,29 @@
+
+
 import React, { useEffect, useRef, useState } from "react";
 import Nav from "./Nav";
 import { categories } from "../category";
 import CategoryCard from "./CategoryCard";
-import { FaCircleChevronLeft, FaCircleChevronRight } from "react-icons/fa6";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { useSelector } from "react-redux";
 import FoodCard from "./FoodCard";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import SelectCity from "./SelectCity";
 
 function UserDashboard() {
   const { currentCity, shopInMyCity, itemsInMyCity, searchItems } = useSelector(
     (state) => state.user
   );
+  const [showCityModal, setShowCityModal] = useState(false);
   const cateScrollRef = useRef();
   const shopScrollRef = useRef();
   const navigate = useNavigate();
 
-  const [showLeftCateButton, setShowLeftCateButton] = useState(false);
-  const [showRightCateButton, setShowRightCateButton] = useState(false);
-  const [showLeftShopButton, setShowLeftShopButton] = useState(false);
-  const [showRightShopButton, setShowRightShopButton] = useState(false);
-  const [updatedItemsList, setUpdatedItemsList] = useState([]);
+  const [updatedItemsList, setUpdatedItemsList] = useState(itemsInMyCity || []);
+  const [showCateBtns, setShowCateBtns] = useState({ left: false, right: false });
+  const [showShopBtns, setShowShopBtns] = useState({ left: false, right: false });
 
+  // Filter items by category
   const handleFilterByCategory = (category) => {
     if (category === "All") setUpdatedItemsList(itemsInMyCity);
     else {
@@ -34,203 +36,170 @@ function UserDashboard() {
     setUpdatedItemsList(itemsInMyCity);
   }, [itemsInMyCity]);
 
-  const updateButton = (ref, setLeftButton, setRightButton) => {
-    const element = ref.current;
-    if (element) {
-      setLeftButton(element.scrollLeft > 0);
-      setRightButton(
-        element.scrollLeft + element.clientWidth < element.scrollWidth
-      );
+  // Update left/right scroll button visibility
+  const updateButtons = (ref, setButtons) => {
+    const el = ref.current;
+    if (el) {
+      setButtons({
+        left: el.scrollLeft > 0,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth,
+      });
     }
   };
 
-  const scrollHandler = (ref, direction) => {
+  // Handle scroll with smooth animation
+  const scrollHandler = (ref, dir) => {
     if (ref.current) {
       ref.current.scrollBy({
-        left: direction === "left" ? -300 : 300,
+        left: dir === "left" ? -300 : 300,
         behavior: "smooth",
       });
     }
   };
 
   useEffect(() => {
-    if (cateScrollRef.current && shopScrollRef.current) {
-      const updateAll = () => {
-        updateButton(cateScrollRef, setShowLeftCateButton, setShowRightCateButton);
-        updateButton(shopScrollRef, setShowLeftShopButton, setShowRightShopButton);
-      };
-      updateAll();
+  if (!currentCity) {
+    setShowCityModal(true);
+  }
+}, [currentCity]);
 
-      cateScrollRef.current.addEventListener("scroll", updateAll);
-      shopScrollRef.current.addEventListener("scroll", updateAll);
+  // Attach scroll listeners for updating arrows
+  useEffect(() => {
+    const update = () => {
+      updateButtons(cateScrollRef, setShowCateBtns);
+      updateButtons(shopScrollRef, setShowShopBtns);
+    };
+    update();
+    cateScrollRef.current?.addEventListener("scroll", update);
+    shopScrollRef.current?.addEventListener("scroll", update);
 
-      return () => {
-        cateScrollRef.current?.removeEventListener("scroll", updateAll);
-        shopScrollRef.current?.removeEventListener("scroll", updateAll);
-      };
-    }
-  }, [categories]);
+    return () => {
+      cateScrollRef.current?.removeEventListener("scroll", update);
+      shopScrollRef.current?.removeEventListener("scroll", update);
+    };
+  }, []);
 
   return (
-    <div className="min-h-screen w-screen bg-gradient-to-br from-[#fff9f6] to-[#fff3ee] flex flex-col items-center overflow-y-auto">
+    <div className="min-h-screen w-full bg-[#fff9f6] flex flex-col items-center">
       <Nav />
 
-      {/* Search Results */}
-      <AnimatePresence>
-        {searchItems && searchItems.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
-            className="w-full max-w-6xl mt-24 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-6 space-y-5"
-          >
-            <h1 className="text-gray-900 text-2xl sm:text-3xl font-semibold border-b border-gray-200 pb-2">
-              Search Results
-            </h1>
-            <div className="w-full flex flex-wrap gap-6 justify-center">
-              {searchItems.map((item) => (
-                <motion.div
-                  key={item._id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <FoodCard data={item} />
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Categories */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="w-full max-w-6xl mt-6 px-4 flex flex-col gap-5 items-start"
-      >
-        <h1 className="text-gray-800 text-2xl sm:text-3xl font-semibold">
-          🍽️ Inspiration for your first order
+      {/* ====================== Categories Section ====================== */}
+      <div className="w-full max-w-6xl mt-8 px-4 flex flex-col gap-4 items-start">
+        <h1 className="text-gray-900 text-[22px] font-semibold tracking-tight flex items-center gap-2">
+          🍽️ <span>Inspiration for your first order</span>
         </h1>
 
-        <div className="w-full relative">
-          {showLeftCateButton && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 bg-[#ff4d2d] text-white p-3 rounded-full shadow-lg hover:bg-[#e64528] z-10"
+        <div className="relative w-full">
+          {showCateBtns.left && (
+            <button
               onClick={() => scrollHandler(cateScrollRef, "left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full p-2 hover:bg-gray-50 z-10"
             >
-              <FaCircleChevronLeft size={22} />
-            </motion.button>
+              <FaChevronLeft className="text-gray-700" />
+            </button>
           )}
 
           <div
-            className="flex overflow-x-auto gap-5 scrollbar-hide pb-3"
             ref={cateScrollRef}
+            className="flex overflow-x-auto gap-4 pb-3 scrollbar-hide scroll-smooth"
           >
             {categories.map((cate, index) => (
-              <motion.div
+              <CategoryCard
                 key={index}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
-              >
-                <CategoryCard
-                  name={cate.category}
-                  image={cate.image}
-                  onClick={() => handleFilterByCategory(cate.category)}
-                />
-              </motion.div>
+                name={cate.category}
+                image={cate.image}
+                onClick={() => handleFilterByCategory(cate.category)}
+              />
             ))}
           </div>
 
-          {showRightCateButton && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#ff4d2d] text-white p-3 rounded-full shadow-lg hover:bg-[#e64528] z-10"
+          {showCateBtns.right && (
+            <button
               onClick={() => scrollHandler(cateScrollRef, "right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full p-2 hover:bg-gray-50 z-10"
             >
-              <FaCircleChevronRight size={22} />
-            </motion.button>
+              <FaChevronRight className="text-gray-700" />
+            </button>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Shops */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        className="w-full max-w-6xl px-4 flex flex-col gap-5 items-start mt-8"
-      >
-        <h1 className="text-gray-800 text-2xl sm:text-3xl font-semibold">
-          🏪 Best Shops in {currentCity}
-        </h1>
-        <div className="w-full relative">
-          {showLeftShopButton && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="absolute left-0 top-1/2 -translate-y-1/2 bg-[#ff4d2d] text-white p-3 rounded-full shadow-lg hover:bg-[#e64528] z-10"
+      {/* ====================== Shops Section ====================== */}
+      <div className="w-full max-w-6xl px-4 flex flex-col gap-4 items-start mt-10">
+        <div className="flex justify-between w-full items-center">
+          <h1 className="text-gray-900 text-[22px] font-semibold tracking-tight">
+            🏪 Best Restaurants in {currentCity || "Your City"}
+          </h1>
+          <button className="text-[#ff4d2d] font-medium hover:underline">
+            See all
+          </button>
+        </div>
+
+        <div className="relative w-full">
+          {showShopBtns.left && (
+            <button
               onClick={() => scrollHandler(shopScrollRef, "left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full p-2 hover:bg-gray-50 z-10"
             >
-              <FaCircleChevronLeft size={22} />
-            </motion.button>
+              <FaChevronLeft className="text-gray-700" />
+            </button>
           )}
 
           <div
-            className="flex overflow-x-auto gap-5 scrollbar-hide pb-3"
             ref={shopScrollRef}
+            className="flex overflow-x-auto gap-5 pb-3 scrollbar-hide scroll-smooth"
           >
-            {shopInMyCity?.map((shop, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ scale: 1.05 }}
-                transition={{ type: "spring", stiffness: 300 }}
+            {shopInMyCity?.map((shop) => (
+              <div
+                key={shop._id}
+                onClick={() => navigate(`/shop/${shop._id}`)}
+                className="w-[250px] bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden flex-shrink-0"
               >
-                <CategoryCard
-                  name={shop.name}
-                  image={shop.image}
-                  onClick={() => navigate(`/shop/${shop._id}`)}
+                <img
+                  src={shop.image}
+                  alt={shop.name}
+                  className="w-full h-[160px] object-cover"
                 />
-              </motion.div>
+                <div className="p-3">
+                  <h3 className="font-semibold text-gray-900 text-lg truncate">
+                    {shop.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 truncate">
+                    {shop.address || currentCity}
+                  </p>
+                  <p className="text-[#ff4d2d] font-medium mt-1 text-sm">
+                    30% Off + 25% Off
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
 
-          {showRightShopButton && (
-            <motion.button
-              whileTap={{ scale: 0.9 }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 bg-[#ff4d2d] text-white p-3 rounded-full shadow-lg hover:bg-[#e64528] z-10"
+          {showShopBtns.right && (
+            <button
               onClick={() => scrollHandler(shopScrollRef, "right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 bg-white shadow-md rounded-full p-2 hover:bg-gray-50 z-10"
             >
-              <FaCircleChevronRight size={22} />
-            </motion.button>
+              <FaChevronRight className="text-gray-700" />
+            </button>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      {/* Suggested Food Items */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.4 }}
-        className="w-full max-w-6xl px-4 flex flex-col gap-6 items-start mt-10 mb-10"
-      >
-        <h1 className="text-gray-800 text-2xl sm:text-3xl font-semibold">
+      <SelectCity isOpen={showCityModal} onClose={() => setShowCityModal(false)} />
+
+
+      {/* ====================== Suggested Food Items ====================== */}
+      <div className="w-full max-w-6xl px-4 flex flex-col gap-5 items-start mt-10 mb-10">
+        <h1 className="text-gray-900 text-[22px] font-semibold tracking-tight">
           🍕 Suggested Food Items
         </h1>
-        <div className="w-full flex flex-wrap gap-6 justify-center">
+        <div className="flex flex-wrap gap-6 justify-start w-full">
           {updatedItemsList?.map((item, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <FoodCard data={item} />
-            </motion.div>
+            <FoodCard key={index} data={item} />
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

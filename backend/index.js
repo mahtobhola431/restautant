@@ -12,12 +12,12 @@ import orderRouter from "./routes/order.routes.js";
 import http from "http";
 import { Server } from "socket.io";
 import { socketHandler } from "./socket.js";
+import adminRouter from "./routes/admin.routes.js";
 
 // ---------------- Initialize ----------------
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Always trust proxy (important for Render / Vercel / HTTPS)
 app.set("trust proxy", 1);
 
 // ---------------- Allowed Origins ----------------
@@ -61,7 +61,7 @@ app.use("/api/user", userRouter);
 app.use("/api/shop", shopRouter);
 app.use("/api/item", itemRouter);
 app.use("/api/order", orderRouter);
-
+app.use("/api/admin", adminRouter);
 
 socketHandler(io);
 
@@ -70,7 +70,6 @@ app.get("/", (req, res) => {
   res.send("🍽️ Restaurant Backend API is running successfully!");
 });
 
-// ---------------- Start Server ----------------
 const port = process.env.PORT || 5000;
 
 server.listen(port, () => {
